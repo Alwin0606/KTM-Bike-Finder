@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KTM Bike Finder V2</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101418;color:white;font-family:Arial,sans-serif}
+header{padding:18px 6%;background:#080b0e;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;border-bottom:2px solid #ff6500}
+.logo{font-size:28px;font-weight:900;color:#ff6500}
+nav a{color:white;text-decoration:none;margin-left:18px}
+.hero{padding:45px 6%;background:linear-gradient(110deg,#111820,#342014)}
+h1{font-size:clamp(30px,5vw,48px)}
+.orange{color:#ff6500}
+.search{display:flex;gap:10px;max-width:700px}
+input,select{padding:13px;background:#20272d;border:1px solid #606870;color:white;border-radius:6px;min-width:0}
+input{flex:1}
+button{padding:12px 18px;background:#ff6500;color:white;border:0;border-radius:6px;cursor:pointer;font-weight:bold}
+main{padding:28px 6%}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+#count{color:#ccc}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:20px}
+.card{background:#1b2229;border:1px solid #39434c;border-radius:9px;overflow:hidden}
+.card img{width:100%;height:190px;object-fit:contain;background:#f2f2f2}
+.info{padding:15px}
+.spec{color:#d8dce0;margin:9px 0;font-size:14px}
+.card button{width:100%;margin-top:10px}
+.modal{display:none;position:fixed;inset:0;background:#000c;z-index:5;overflow:auto;padding:25px}
+.panel{max-width:700px;margin:25px auto;background:#1b2229;border:1px solid #555;border-radius:12px;padding:22px}
+.panel img{width:100%;height:300px;object-fit:contain;background:#f2f2f2;border-radius:8px}
+.close{float:right;background:#444}
+.detail-row{padding:12px 0;border-bottom:1px solid #39434c}
+footer{text-align:center;padding:25px;color:#aaa;background:#080b0e;margin-top:30px}
+@media(max-width:550px){.search{flex-direction:column}nav{margin-top:15px}nav a{margin:0 10px 0 0}.hero,main{padding:25px 5%}.panel img{height:210px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">KTM FINDER</div>
+  <nav><a href="#">Home</a><a href="#models">Models</a></nav>
+</header>
+
+<section class="hero">
+  <h1>Find Your <span class="orange">KTM</span> Bike</h1>
+  <p>Search models, explore photos and view bike specifications.</p>
+  <div class="search">
+    <input id="query" placeholder="Search KTM Duke, RC, Adventure..." onkeydown="if(event.key==='Enter')search()">
+    <button onclick="search()">Search</button>
+  </div>
+</section>
+
+<main id="models">
+  <h2>Explore <span class="orange">KTM Models</span></h2>
+  <div class="filters">
+    <select id="category" onchange="search()">
+      <option value="All">All categories</option>
+      <option>Duke</option><option>RC</option><option>Adventure</option>
+    </select>
+    <select id="sort" onchange="search()">
+      <option value="default">Default order</option>
+      <option value="low">Engine: low to high</option>
+      <option value="high">Engine: high to low</option>
+    </select>
+  </div>
+  <p id="count"></p>
+  <div id="grid" class="grid"></div>
+</main>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeDetails()">
+  <div class="panel">
+    <button class="close" onclick="closeDetails()">Close ✕</button>
+    <div id="details"></div>
+  </div>
+</div>
+
+<footer>KTM Bike Finder | Student Project<br>
+Specifications and model availability vary by country and year.</footer>
+
+<script>
+const bikes=[
+ {name:"KTM 125 Duke",type:"Duke",cc:124,power:"15 PS",torque:"11.5 Nm",year:"Varies by market",desc:"Lightweight naked street motorcycle.",img:"https://tse3.mm.bing.net/th/id/OIP.nwrTTzvQulNKwpLv1LUH7QHaDt?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",official:"https://www.ktm.com/"},
+ {name:"KTM 200 Duke",type:"Duke",cc:199,power:"Varies by year",torque:"Varies by year",year:"Market dependent",desc:"Compact street-focused naked bike.",img:"https://www.livemint.com/lm-img/img/2023/06/20/original/2_1687256587514.png",official:"https://www.ktm.com/"},
+ {name:"KTM 250 Duke",type:"Duke",cc:249,power:"Varies by year",torque:"Varies by year",year:"Market dependent",desc:"Naked bike for daily rides and sporty handling.",img:"https://www.bikesmedia.in/uploads/image/reviews/2018/nov/2019-ktm-duke-250-about-to-launch-india-qa.jpg",official:"https://www.ktm.com/"},
+ {name:"KTM 390 Duke",type:"Duke",cc:399,power:"45 PS (2026 US model)",torque:"39 Nm (2026 US model)",year:"2026 US specification",desc:"Aggressive naked bike with a 399 cc engine.",img:"https://cdpcdn.dx1app.com/products/USA/KT/2025/MC/SPORT/390_DUKE/50/BLUE/2000000004.jpg",official:"https://www.ktm.com/en-us/models/naked-bike/2026-ktm-390-duke.html"},
+ {name:"KTM 790 Duke",type:"Duke",cc:799,power:"Varies by year",torque:"Varies by year",year:"Market dependent",desc:"Middleweight performance naked bike.",img:"https://cdni.autocarindia.com/ExtraImages/20190930042049_KTM-790-Duke.jpg",official:"https://www.ktm.com/"},
+ {name:"KTM 990 Duke",type:"Duke",cc:947,power:"Varies by year",torque:"Varies by year",year:"Market dependent",desc:"High-performance street naked motorcycle.",img:"https://ultimatemotorcycling.com/wp-content/uploads/2024/04/2024-ktm-990-duke-review-11.webp",official:"https://www.ktm.com/"},
+ {name:"KTM RC 200",type:"RC",cc:199,power:"Varies by year",torque:"Varies by year",year:"Market dependent",desc:"Fully faired sport motorcycle.",img:"https://tse2.mm.bing.net/th/id/OIP.5nNLIrORd0TZQiGbvDaILwHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",official:"https://www.ktm.com/"},
+ {name:"KTM RC 390",type:"RC",cc:373,power:"Varies by year",torque:"Varies by year",year:"2024 US model listed",desc:"Track-inspired supersport motorcycle.https://tse2.mm.bing.net/th/id/OIP.5nNLIrORd0TZQiGbvDaILwHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",img:"https://tse4.mm.bing.net/th/id/OIP.XQv-6orqDghawG4t5Rk2pgHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",official:"https://www.ktm.com/en-us/models/supersport/2024-ktm-rc-390.html"},
+ {name:"KTM 390 Adventure R",type:"Adventure",cc:399,power:"Varies by specification",torque:"Varies by specification",year:"2026 US model",desc:"Adventure bike designed for road and off-road travel.",img:"https://tse1.mm.bing.net/th/id/OIP._THzn8S-flxEF2DN_eIkNgHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",official:"https://www.ktm.com/en-us/models/adventure/2026-ktm-390-adventurer.html"}
+];
+
+function search(){
+ let q=document.getElementById("query").value.trim().toLowerCase();
+ let c=document.getElementById("category").value;
+ let s=document.getElementById("sort").value;
+ let results=bikes.filter(b=>
+   (b.name.toLowerCase().includes(q)||b.type.toLowerCase().includes(q)||q==="ktm"||q==="") &&
+   (c==="All"||b.type===c)
+ );
+ if(s==="low")results.sort((a,b)=>a.cc-b.cc);
+ if(s==="high")results.sort((a,b)=>b.cc-a.cc);
+ document.getElementById("count").textContent=results.length+" model(s) found";
+ document.getElementById("grid").innerHTML=results.length?results.map(b=>`
+ <article class="card">
+ <img src="${b.img}" alt="${b.name} motorcycle" loading="lazy">
+ <div class="info"><h3>${b.name}</h3>
+ <div class="spec">Engine: ${b.cc} cc</div>
+ <div class="spec">Power: ${b.power}</div>
+ <div class="spec">Torque: ${b.torque}</div>
+ <button onclick="showDetails('${b.name}')">View Details</button>
+ </div></article>`).join(""):"<p>No models found. Try Duke, RC or Adventure.</p>";
+}
+
+function showDetails(name){
+ const b=bikes.find(x=>x.name===name);
+ if(!b)return;
+ document.getElementById("details").innerHTML=`
+ <h2>${b.name}</h2>
+ <img src="${b.img}" alt="${b.name}">
+ <p>${b.desc}</p>
+ <div class="detail-row">Category: ${b.type}</div>
+ <div class="detail-row">Engine capacity: ${b.cc} cc</div>
+ <div class="detail-row">Power: ${b.power}</div>
+ <div class="detail-row">Torque: ${b.torque}</div>
+ <div class="detail-row">Model / market note: ${b.year}</div>
+ <p><a style="color:#ff6500" href="${b.official}" target="_blank" rel="noopener">Open KTM official website</a></p>`;
+ document.getElementById("modal").style.display="block";
+}
+function closeDetails(){document.getElementById("modal").style.display="none"}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetails()});
+search();
+</script>
+</body>
+</html>
+
